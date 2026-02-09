@@ -7,7 +7,7 @@ from openpyxl.styles import Font
 # ---------------- PAGE SETUP ----------------
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Counseling Transcript Cleaner")
-st.subheader("This code was generated using ChatGPT by Hunter T. Last updated February 9, 2026.")
+st.caption("This code was generated using ChatGPT by Hunter T. Last updated February 9, 2026.")
 
 # ---------------- SESSION STATE ----------------
 if "ready_to_download" not in st.session_state:
@@ -16,13 +16,9 @@ if "ready_to_download" not in st.session_state:
 if "offset_seconds" not in st.session_state:
     st.session_state.offset_seconds = 0
 
-if "uploaded" not in st.session_state:
-    st.session_state.uploaded = False
-
 # ---------------- RESET ----------------
 def reset_app():
     st.session_state.ready_to_download = False
-    st.session_state.uploaded = False
     st.session_state.offset_seconds = 0
     st.rerun()
 
@@ -36,59 +32,56 @@ offset_seconds = st.number_input(
 )
 
 uploaded_file = st.file_uploader(
-    "Upload transcript (Zoom or Riverside)",
+    "Upload transcript (any standard format)",
     type=["txt", "vtt"]
 )
 
-# ---------------- DETECTION ----------------
-def detect_transcript_type(text):
-    if "WEBVTT" in text or "-->" in text:
-        return "vtt"
-    if re.search(r"\[.+?\]\s+\d{1,2}:\d{2}", text):
-        return "zoom"
-    return "generic"
+# ---------------- UNIVERSAL PARSER ----------------
 
-# ---------------- PARSERS ----------------
-def parse_zoom_txt(text):
+TIMESTAMP_REGEX = re.compile(
+    r"(\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2})(?:\.\d+)?"
+)
+
+def parse_transcript(text):
     rows = []
-    speaker = None
-    timestamp = None
+    current_speaker = None
+    current_timestamp = None
 
-    for line in text.splitlines():
-        line = line.strip()
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
         if not line:
             continue
 
-        match = re.match(r"\[(.+?)\]\s+(\d{1,2}:\d{2}(:\d{2})?)", line)
-        if match:
-            speaker = match.group(1)
-            timestamp = match.group(2)
+        # 1️⃣ Extract timestamp if present
+        ts_match = TIMESTAMP_REGEX.search(line)
+        if ts_match:
+            current_timestamp = ts_match.group(1)
+            line = line.replace(ts_match.group(0), "").strip(" -:()[]")
+
+        # 2️⃣ Extract speaker if present
+        speaker = None
+
+        # Patterns like "John Smith:" or "[John Smith]"
+        speaker_match = re.match(r"^\[?([A-Za-z][A-Za-z .'-]{1,50})\]?\s*[:\-]", line)
+        if speaker_match:
+            speaker = speaker_match.group(1).strip()
+            line = line[speaker_match.end():].strip()
         else:
+            # Patterns like "John Smith says..."
+            possible = line.split(":")
+            if len(possible) > 1 and len(possible[0].split()) <= 4:
+                speaker = possible[0].strip()
+                line = possible[1].strip()
+
+        if speaker:
+            current_speaker = speaker
+
+        # Remaining line is dialogue
+        if line:
             rows.append({
-                "Speaker": speaker,
-                "Timestamp": timestamp,
+                "Speaker": current_speaker,
+                "Timestamp": current_timestamp,
                 "Text": line
-            })
-
-    return pd.DataFrame(rows)
-
-def parse_vtt(text):
-    rows = []
-    timestamp = None
-
-    for line in text.splitlines():
-        line = line.strip()
-
-        if "-->" in line:
-            timestamp = line.split("-->")[0].strip().split(".")[0]
-            continue
-
-        if ":" in line and timestamp:
-            speaker, text_part = line.split(":", 1)
-            rows.append({
-                "Speaker": speaker.strip(),
-                "Timestamp": timestamp,
-                "Text": text_part.strip()
             })
 
     return pd.DataFrame(rows)
@@ -118,7 +111,7 @@ def apply_offset(ts, offset):
 # ---------------- TRANSFORMS ----------------
 def normalize_speakers(df, counselor_name):
     df["Speaker"] = df["Speaker"].apply(
-        lambda n: "Couns." if counselor_name.lower() in n.lower() else "Client"
+        lambda n: "Couns." if counselor_name.lower() in (n or "").lower() else "Client"
     )
     return df
 
@@ -174,14 +167,12 @@ def style_excel(df):
 
 # ---------------- MAIN ----------------
 if uploaded_file:
-    st.session_state.uploaded = True
-
     counselor_name = st.text_input(
         "Enter the counselor’s full name as it appears in the transcript"
     )
 
     text = uploaded_file.read().decode("utf-8")
-    df = parse_vtt(text) if detect_transcript_type(text) == "vtt" else parse_zoom_txt(text)
+    df = parse_transcript(text)
 
     if counselor_name and not df.empty:
         df["Timestamp"] = df["Timestamp"].apply(
@@ -211,3 +202,5 @@ if uploaded_file:
 
     elif not counselor_name:
         st.info("Enter the counselor’s name to continue.")
+    else:
+        st.error("Could not parse transcript.")

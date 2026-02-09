@@ -4,203 +4,175 @@ import re
 from io import BytesIO
 from openpyxl.styles import Font
 
-# ---------------- PAGE SETUP ----------------
+# ---------------- PAGE ----------------
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Counseling Transcript Cleaner")
-st.caption("This code was generated using ChatGPT by Hunter T. Last updated February 9, 2026.")
+st.caption("This webpage was developed with ChatGPT by Hunter T. Last updated February 9, 2026.")
 
-# ---------------- SESSION STATE ----------------
-if "ready_to_download" not in st.session_state:
-    st.session_state.ready_to_download = False
-
-if "offset_seconds" not in st.session_state:
-    st.session_state.offset_seconds = 0
+# ---------------- SESSION ----------------
+for key, default in {
+    "ready": False,
+    "offset": 0,
+    "file_key": 0
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 # ---------------- RESET ----------------
 def reset_app():
-    st.session_state.ready_to_download = False
-    st.session_state.offset_seconds = 0
-    st.rerun()
+    st.session_state.ready = False
+    st.session_state.offset = 0
+    st.session_state.file_key += 1
 
-# ---------------- CONTROLS ----------------
-offset_seconds = st.number_input(
+# ---------------- INPUTS ----------------
+offset = st.number_input(
     "How many seconds should be removed from counselor timestamps?",
     min_value=0,
     max_value=3600,
     step=1,
-    key="offset_seconds"
+    key="offset"
 )
 
-uploaded_file = st.file_uploader(
-    "Upload transcript (any standard format)",
-    type=["txt", "vtt"]
+uploaded = st.file_uploader(
+    "Upload transcript",
+    type=["txt", "vtt"],
+    key=f"uploader_{st.session_state.file_key}"
 )
 
-# ---------------- UNIVERSAL PARSER ----------------
+# ---------------- REGEX ----------------
+TIMESTAMP_RE = re.compile(r"\b(\d{1,2}:\d{2}(?::\d{2})?)\b")
+SPEAKER_RE = re.compile(r"^\[?([A-Za-z][A-Za-z .'-]{1,40})\]?\s*[:\-]")
 
-TIMESTAMP_REGEX = re.compile(
-    r"(\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2})(?:\.\d+)?"
-)
-
+# ---------------- PARSER ----------------
 def parse_transcript(text):
     rows = []
-    current_speaker = None
-    current_timestamp = None
+    speaker = None
+    timestamp = None
+    buffer = ""
 
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
+    def flush():
+        nonlocal buffer
+        if speaker and buffer.strip():
+            rows.append({
+                "Speaker": speaker,
+                "Timestamp": timestamp,
+                "Text": buffer.strip()
+            })
+        buffer = ""
+
+    for raw in text.splitlines():
+        line = raw.strip()
         if not line:
             continue
 
-        # 1️⃣ Extract timestamp if present
-        ts_match = TIMESTAMP_REGEX.search(line)
-        if ts_match:
-            current_timestamp = ts_match.group(1)
-            line = line.replace(ts_match.group(0), "").strip(" -:()[]")
+        ts = TIMESTAMP_RE.search(line)
+        sp = SPEAKER_RE.match(line)
 
-        # 2️⃣ Extract speaker if present
-        speaker = None
+        if sp or ts:
+            flush()
 
-        # Patterns like "John Smith:" or "[John Smith]"
-        speaker_match = re.match(r"^\[?([A-Za-z][A-Za-z .'-]{1,50})\]?\s*[:\-]", line)
-        if speaker_match:
-            speaker = speaker_match.group(1).strip()
-            line = line[speaker_match.end():].strip()
-        else:
-            # Patterns like "John Smith says..."
-            possible = line.split(":")
-            if len(possible) > 1 and len(possible[0].split()) <= 4:
-                speaker = possible[0].strip()
-                line = possible[1].strip()
+        if ts:
+            timestamp = ts.group(1)
+            line = TIMESTAMP_RE.sub("", line).strip(" -:()[]")
 
-        if speaker:
-            current_speaker = speaker
+        if sp:
+            speaker = sp.group(1).strip()
+            line = line[sp.end():].strip()
 
-        # Remaining line is dialogue
         if line:
-            rows.append({
-                "Speaker": current_speaker,
-                "Timestamp": current_timestamp,
-                "Text": line
-            })
+            buffer += (" " if buffer else "") + line
 
+    flush()
     return pd.DataFrame(rows)
 
-# ---------------- TIMESTAMPS ----------------
-def timestamp_to_seconds(ts):
-    parts = ts.split(":")
-    if len(parts) == 2:
-        return int(parts[0]) * 60 + int(parts[1])
-    if len(parts) == 3:
-        return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-    return 0
+# ---------------- TIME ----------------
+def to_seconds(ts):
+    parts = list(map(int, ts.split(":")))
+    return sum(p * 60 ** i for i, p in enumerate(reversed(parts)))
 
-def seconds_to_timestamp(seconds):
-    seconds = max(0, seconds)
-    h = seconds // 3600
-    m = (seconds % 3600) // 60
-    s = seconds % 60
+def from_seconds(s):
+    s = max(0, s)
+    h, s = divmod(s, 3600)
+    m, s = divmod(s, 60)
     return f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
 
-def apply_offset(ts, offset):
-    try:
-        return seconds_to_timestamp(timestamp_to_seconds(ts) - offset)
-    except:
-        return ts
-
 # ---------------- TRANSFORMS ----------------
-def normalize_speakers(df, counselor_name):
+def normalize(df, counselor):
     df["Speaker"] = df["Speaker"].apply(
-        lambda n: "Couns." if counselor_name.lower() in (n or "").lower() else "Client"
+        lambda x: "Couns." if counselor.lower() in x.lower() else "Client"
     )
     return df
 
-def merge_sequential_by_speaker(df):
-    merged = []
-    prev = None
+def apply_offset(df):
+    df.loc[df["Speaker"] == "Couns.", "Timestamp"] = df.loc[
+        df["Speaker"] == "Couns.", "Timestamp"
+    ].apply(lambda t: from_seconds(to_seconds(t) - offset))
+    return df
 
-    for _, row in df.iterrows():
-        if prev and row["Speaker"] == prev["Speaker"]:
-            prev["Text"] += " " + row["Text"]
+def merge_sequential(df):
+    out, prev = [], None
+    for _, r in df.iterrows():
+        if prev and r["Speaker"] == prev["Speaker"]:
+            prev["Text"] += " " + r["Text"]
         else:
             if prev:
-                merged.append(prev)
-            prev = row.to_dict()
-
+                out.append(prev)
+            prev = r.to_dict()
     if prev:
-        merged.append(prev)
+        out.append(prev)
+    return pd.DataFrame(out)
 
-    return pd.DataFrame(merged)
-
-def clear_client_timestamps(df):
+def finalize(df):
     df.loc[df["Speaker"] == "Client", "Timestamp"] = ""
-    return df
-
-def add_me_column(df):
     df["ME"] = df.apply(
-        lambda r: "ME"
-        if r["Speaker"] == "Couns." and len(r["Text"].split()) <= 3
-        else "",
+        lambda r: "ME" if r["Speaker"] == "Couns." and len(r["Text"].split()) <= 3 else "",
         axis=1
     )
-    return df
+    return df[["Timestamp", "Speaker", "Text", "ME"]]
 
 # ---------------- EXCEL ----------------
-def style_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Transcript")
-        ws = writer.sheets["Transcript"]
+def make_excel(df):
+    bio = BytesIO()
+    with pd.ExcelWriter(bio, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False)
+        ws = writer.sheets["Sheet1"]
 
         for row in ws.iter_rows(min_row=2):
             if row[1].value == "Client":
                 for cell in row:
                     cell.font = Font(color="1F4FFF")
 
-        ws.column_dimensions["A"].width = 14
+        ws.column_dimensions["A"].width = 10
         ws.column_dimensions["B"].width = 10
         ws.column_dimensions["C"].width = 90
-        ws.column_dimensions["D"].width = 6
+        ws.column_dimensions["D"].width = 5
 
-    output.seek(0)
-    return output
+    bio.seek(0)
+    return bio
 
 # ---------------- MAIN ----------------
-if uploaded_file:
-    counselor_name = st.text_input(
-        "Enter the counselor’s full name as it appears in the transcript"
-    )
+if uploaded:
+    counselor = st.text_input("Enter counselor’s full name")
 
-    text = uploaded_file.read().decode("utf-8")
-    df = parse_transcript(text)
+    if counselor:
+        text = uploaded.read().decode("utf-8")
+        df = parse_transcript(text)
 
-    if counselor_name and not df.empty:
-        df["Timestamp"] = df["Timestamp"].apply(
-            lambda ts: apply_offset(ts, st.session_state.offset_seconds) if pd.notna(ts) else ts
-        )
+        if not df.empty:
+            df = normalize(df, counselor)
+            df = apply_offset(df)
+            df = merge_sequential(df)
+            df = finalize(df)
 
-        df = normalize_speakers(df, counselor_name)
-        df = merge_sequential_by_speaker(df)
-        df = clear_client_timestamps(df)
-        df = add_me_column(df)
+            st.dataframe(df, use_container_width=True)
 
-        df = df[["Timestamp", "Speaker", "Text", "ME"]]
-
-        st.dataframe(df, use_container_width=True)
-
-        if not st.session_state.ready_to_download:
-            excel = style_excel(df)
+            excel = make_excel(df)
             st.download_button(
                 "⬇️ Download Excel",
                 excel,
-                file_name="counseling_transcript.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                file_name="counseling_transcript.xlsx"
             )
-            st.session_state.ready_to_download = True
 
-        st.button("🔄 Start new upload", on_click=reset_app)
-
-    elif not counselor_name:
-        st.info("Enter the counselor’s name to continue.")
-    else:
-        st.error("Could not parse transcript.")
+            st.button("🔄 Start new upload", on_click=reset_app)
+        else:
+            st.error("Transcript could not be parsed.")

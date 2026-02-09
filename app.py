@@ -7,7 +7,7 @@ from openpyxl.styles import Font
 # ---------------- PAGE SETUP ----------------
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Counseling Transcript Cleaner")
-st.subtitle("This code was generated using ChatGPT by Hunter T. Last updated February 9, 2026.")
+st.subheader("This code was generated using ChatGPT by Hunter T. Last updated February 9, 2026.")
 
 # ---------------- SESSION STATE ----------------
 if "ready_to_download" not in st.session_state:

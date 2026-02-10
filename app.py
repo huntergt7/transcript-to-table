@@ -7,7 +7,7 @@ from openpyxl.styles import Font
 # ---------------- PAGE ----------------
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Counseling Transcript Cleaner")
-st.caption("This webpage was developed with ChatGPT by Hunter T. Last updated February 9, 2026.")
+st.caption("This webpage was developed with ChatGPT by Hunter T. _Last updated February 9, 2026._")
 
 # ---------------- SESSION ----------------
 for key, default in {
@@ -46,41 +46,48 @@ SPEAKER_RE = re.compile(r"^\[?([A-Za-z][A-Za-z .'-]{1,40})\]?\s*[:\-]")
 # ---------------- PARSER ----------------
 def parse_transcript(text):
     rows = []
-    speaker = None
-    timestamp = None
-    buffer = ""
+    current_speaker = None
+    current_timestamp = None
+    buffer = []
 
     def flush():
         nonlocal buffer
-        if speaker and buffer.strip():
+        if current_speaker and buffer:
             rows.append({
-                "Speaker": speaker,
-                "Timestamp": timestamp,
-                "Text": buffer.strip()
+                "Speaker": current_speaker,
+                "Timestamp": current_timestamp,
+                "Text": " ".join(buffer).strip()
             })
-        buffer = ""
+        buffer = []
 
     for raw in text.splitlines():
         line = raw.strip()
         if not line:
             continue
 
-        ts = TIMESTAMP_RE.search(line)
-        sp = SPEAKER_RE.match(line)
+        # Detect speaker line (REQUIRED to start a new row)
+        speaker_match = re.match(
+            r"^\[?([A-Za-z][A-Za-z .'-]{1,40})\]?\s*(\d{1,2}:\d{2}(?::\d{2})?)?",
+            line
+        )
 
-        if sp or ts:
+        if speaker_match:
+            # New speaker → flush previous row
             flush()
 
-        if ts:
-            timestamp = ts.group(1)
-            line = TIMESTAMP_RE.sub("", line).strip(" -:()[]")
+            current_speaker = speaker_match.group(1).strip()
+            current_timestamp = speaker_match.group(2)
 
-        if sp:
-            speaker = sp.group(1).strip()
-            line = line[sp.end():].strip()
+            continue  # next lines are dialogue
 
-        if line:
-            buffer += (" " if buffer else "") + line
+        # Detect standalone timestamp lines
+        ts_match = TIMESTAMP_RE.search(line)
+        if ts_match and current_timestamp is None:
+            current_timestamp = ts_match.group(1)
+            continue
+
+        # Otherwise: dialogue line
+        buffer.append(line)
 
     flush()
     return pd.DataFrame(rows)
@@ -167,6 +174,7 @@ if uploaded:
             st.dataframe(df, width='stretch')
 
             excel = make_excel(df)
+            d = date
             st.download_button(
                 "⬇️ Download Excel",
                 excel,

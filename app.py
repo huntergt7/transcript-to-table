@@ -65,41 +65,41 @@ def parse_transcript(text: str) -> pd.DataFrame:
         buffer = []
 
     for raw in text.splitlines():
-        try:
-            line = raw.strip()
-        except Exception:
-            continue
+        line = raw.strip()
 
         if not line:
             continue
 
-        speaker_match = SPEAKER_RE.match(line)
-
-        if speaker_match:
-            flush()
-
-            try:
-                current_speaker = speaker_match.group(1).strip()
-            except Exception:
-                current_speaker = None
-
-            try:
-                current_timestamp = speaker_match.group(2)
-            except Exception:
-                current_timestamp = None
-
+        # Ignore caption junk
+        if line in {".", "..", "..."}:
             continue
 
-        # Standalone timestamp line
-        try:
-            ts_match = TIMESTAMP_RE.search(line)
-        except Exception:
-            ts_match = None
-
-        if ts_match and current_timestamp is None:
+        # Timestamp-only line
+        ts_match = TIMESTAMP_RE.fullmatch(line)
+        if ts_match:
             current_timestamp = ts_match.group(1)
             continue
 
+        # Speaker line heuristics
+        is_short = len(line.split()) <= 5
+        has_letters = re.search(r"[A-Za-z]", line)
+        has_sentence_punct = re.search(r"[.!?]", line)
+
+        if is_short and has_letters and not has_sentence_punct:
+            # New speaker detected
+            flush()
+
+            # Extract timestamp if present
+            ts = TIMESTAMP_RE.search(line)
+            current_timestamp = ts.group(1) if ts else None
+
+            # Remove timestamp from speaker name
+            speaker = TIMESTAMP_RE.sub("", line).strip(" :-[]()")
+
+            current_speaker = speaker
+            continue
+
+        # Otherwise: dialogue
         buffer.append(line)
 
     flush()

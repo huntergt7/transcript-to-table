@@ -164,7 +164,7 @@ if uploaded:
             df = merge_sequential(df)
             df = finalize(df)
 
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width='stretch')
 
             excel = make_excel(df)
             st.download_button(

@@ -174,7 +174,6 @@ if uploaded:
             st.dataframe(df, width='stretch')
 
             excel = make_excel(df)
-            d = date
             st.download_button(
                 "⬇️ Download Excel",
                 excel,

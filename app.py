@@ -262,7 +262,7 @@ if process_btn:
             df = pd.DataFrame(rows, columns=["Timestamp", "Speaker", "Quote", "Tag"])
 
             st.subheader("Preview")
-            st.dataframe(df, use_container_width=True, height=360)
+            st.dataframe(df, width='stretch', height=360)
 
             # Write to XLSX (in-memory) with styling for Client rows
             output = io.BytesIO()

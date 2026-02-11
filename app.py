@@ -172,6 +172,8 @@ def parse_dialogue_lines(
             # 3) Remaining = quote fragment
             quote_fragment = clean_quote(seg)
             if not is_meaningful(quote_fragment):
+                # IMPORTANT: Do NOT create a row here.
+                # Keep tokens pending for the next line(s).
                 continue
 
             # 4) Map raw speaker to public label (Couns/Client/Other)
@@ -186,12 +188,21 @@ def parse_dialogue_lines(
 
             candidate_public = map_public_name(pending_speaker_raw) or last_speaker_public
 
-            # 5) Anonymize names inside quotes
+            # If we STILL don't know the speaker at this point, do not create a row—
+            # treat it as noise unless we already have a row to append to.
+            if not candidate_public and not rows:
+                # No known speaker and no prior row to append -> ignore
+                pending_timestamp = None
+                pending_speaker_raw = None
+                continue
+
+            # 5) Anonymize inside quote
             quote_fragment = safe_replace_whole_name(quote_fragment, counselor_name, "Couns")
             quote_fragment = safe_replace_whole_name(quote_fragment, client_name, "Client")
 
-            # 6) Append or create row
+            # 6) Append or create row (now we definitely have a quote)
             if rows and candidate_public and rows[-1]["Speaker"] == candidate_public:
+                # Same speaker as previous → append; ignore any timestamp
                 rows[-1]["Quote"] = (rows[-1]["Quote"] + " " + quote_fragment).strip()
                 if rows[-1]["Speaker"] == "Client":
                     rows[-1]["Timestamp"] = ""  # ensure no timestamp for any Client row
@@ -200,6 +211,7 @@ def parse_dialogue_lines(
                 speaker_for_row = candidate_public or ""
                 if speaker_for_row == "Client":
                     ts_for_row = ""
+
                 rows.append({
                     "Timestamp": ts_for_row,
                     "Speaker": speaker_for_row,
@@ -219,13 +231,12 @@ def parse_dialogue_lines(
 
     return rows
 
-
 # ---------------------------
 # Streamlit UI
 # ---------------------------
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Counseling Transcript Cleaner")
-st.caption("This code was generated using ChatGPT by Hunter T. Last updated February 9, 2026.")
+st.caption("This code was generated using ChatGPT by Hunter T. _Last updated February 10, 2026._")
 
 with st.sidebar:
     st.header("Settings")

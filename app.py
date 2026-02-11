@@ -378,12 +378,13 @@ with st.sidebar:
 
     # Default shift set to 1.0s (your preference)
     shift_seconds = st.number_input(
-        "Seconds to subtract", min_value=0.0, value=1.0, step=0.5,
+        "Seconds to subtract", min_value=0, value=0, step=1,
         help="Subtract before formatting timestamps to MM:SS"
     )
 
     # Debug checkbox defaults from DEBUG_ON
-    show_trace = st.checkbox("Show parser trace (debug)", value=DEBUG_ON)
+    if DEBUG_ON:
+        show_trace = st.checkbox("Show parser trace (debug)", value=DEBUG_ON)
 
     st.markdown("---")
     input_method = st.radio("Input method", ["Upload .txt", "Paste text"], index=0)

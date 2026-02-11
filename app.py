@@ -370,8 +370,8 @@ st.caption("This code was generated with the help of Microsoft Copilot. For trou
 
 with st.sidebar:
     st.header("Settings")
-    counselor_name_input = st.text_input("Counselor name (as it appears in transcript)", placeholder="e.g., Hunter T. or Dr. 🐟-Smith, Jr.")
-    client_name_input    = st.text_input("Client name (as it appears in transcript)",    placeholder="e.g., Renée B ✨")
+    counselor_name_input = st.text_input("Counselor name (as it appears in transcript)", placeholder="<Couns Name>")
+    client_name_input    = st.text_input("Client name (as it appears in transcript)",    placeholder="<Client Name>")
 
     counselor_name = _normalize_name_input(counselor_name_input)
     client_name    = _normalize_name_input(client_name_input)

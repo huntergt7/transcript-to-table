@@ -366,7 +366,7 @@ def parse_dialogue_text(
 
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Counseling Transcript Cleaner")
-st.caption("This code was generated using ChatGPT by Hunter T. _Last updated February 10, 2026._")
+st.caption("This code was generated with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T. _Last updated February 10, 2026._")
 
 with st.sidebar:
     st.header("Settings")

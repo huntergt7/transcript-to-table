@@ -366,7 +366,8 @@ def parse_dialogue_text(
 
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Video Recording Transcript Converter for COUN 633")
-st.caption("This code was generated with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T. _Last updated February 10, 2026._")
+st.caption("Disclaimer: Use at your own risk. By interacting with this tool, you agree to the Terms of Service of Streamlit.io")
+st.caption("This tool was developed with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T. _Last updated February 10, 2026._")
 
 with st.sidebar:
     st.header("Settings")

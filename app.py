@@ -383,7 +383,7 @@ with st.sidebar:
     )
 
     # Debug checkbox defaults from DEBUG_ON
-    show_trace = false
+    show_trace = False
     if DEBUG_ON:
         show_trace = st.checkbox("Show parser trace (debug)", value=DEBUG_ON)
 

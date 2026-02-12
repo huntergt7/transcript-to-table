@@ -370,7 +370,7 @@ st.caption("Disclaimer: Use at your own risk. By interacting with this tool, you
 st.subheader("Instructions: ")
 st.caption("1. Add Couns/Client names and upload file.")
 st.caption("2. After file is generated, open in MacOS Numbers v14.5 or lower, or in Microsoft Excel.")
-st.caption("3. Copy and paste the table into your verbatim form. Before clicking anywhere else, you might need to change the formatting:
+st.caption("3. Copy and paste the table into your verbatim form. Before clicking anywhere else, you might need to change the formatting:")
 st.caption("")
 st.caption("To fill the cells with white on Pages: Format>Cell>Fill [select white color] ")
 st.caption("To draw the grid black on Pages: Format>Cell>Border>All borders [select black color] ")

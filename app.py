@@ -5,7 +5,7 @@ from typing import List, Dict, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill
 
 # =========================
 # Toggleable debug flag
@@ -367,7 +367,8 @@ def parse_dialogue_text(
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
 st.title("📝 Video Recording Transcript Converter for COUN 633")
 st.caption("Disclaimer: Use at your own risk. By interacting with this tool, you agree to the Terms of Service of Streamlit.io")
-st.caption("This tool was developed with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T. _Last updated February 10, 2026._")
+st.caption("This tool was developed with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T.")
+st.caption("_Last updated February 11, 2026._")
 
 with st.sidebar:
     st.header("Settings")
@@ -426,14 +427,28 @@ if st.button("Parse & Generate"):
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 df.to_excel(writer, index=False, sheet_name="Dialogue")
                 ws = writer.sheets["Dialogue"]
-                blue_font = Font(color="0000FF")
-                for i in range(2, len(df) + 2):  # row 1 is header
-                    if ws.cell(row=i, column=2).value == "Client":
-                        for col in range(1, 5):  # 4 columns
-                            ws.cell(row=i, column=col).font = blue_font
+                
+                # Define styles
+                white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+                base_font  = Font(name="Times New Roman", size=12)
+                blue_font  = Font(name="Times New Roman", size=12, color="0000FF")  # for Client rows
+                
+                # Apply to all cells
+                for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                    for cell in row:
+                        cell.fill = white_fill     # white background
+                        cell.font = base_font      # Times New Roman 12pt
+                
+                # Then re-apply blue font to Client rows (column 2 = Speaker)
+                for r in range(2, ws.max_row + 1):
+                    if ws.cell(row=r, column=2).value == "Client":
+                        for c in range(1, ws.max_column + 1):
+                            ws.cell(row=r, column=c).font = blue_font
+                                blue_font = Font(color="0000FF")
+
             output.seek(0)
 
-            suggested_name = "dialogue.xlsx"
+            suggested_name = "converted_transcript.xlsx"
             if input_method == "Upload .txt" and uploaded_file is not None:
                 base = uploaded_file.name.rsplit(".", 1)[0]
                 suggested_name = f"{base}.xlsx"
@@ -445,13 +460,13 @@ if st.button("Parse & Generate"):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
-            # Also offer a clean CSV export
-            st.download_button(
-                label="⬇️ Download CSV",
-                data=df.to_csv(index=False).encode("utf-8"),
-                file_name=suggested_name.replace(".xlsx", ".csv"),
-                mime="text/csv",
-            )
+            # # Also offer a clean CSV export
+            # st.download_button(
+            #     label="⬇️ Download CSV",
+            #     data=df.to_csv(index=False).encode("utf-8"),
+            #     file_name=suggested_name.replace(".xlsx", ".csv"),
+            #     mime="text/csv",
+            # )
 
             # Quick stats
             total = len(df)

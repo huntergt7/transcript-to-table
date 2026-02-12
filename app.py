@@ -444,7 +444,7 @@ if st.button("Parse & Generate"):
                     if ws.cell(row=r, column=2).value == "Client":
                         for c in range(1, ws.max_column + 1):
                             ws.cell(row=r, column=c).font = blue_font
-                                blue_font = Font(color="0000FF")
+                            blue_font = Font(color="0000FF")
 
             output.seek(0)
 

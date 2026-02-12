@@ -436,7 +436,7 @@ if st.button("Parse & Generate"):
                 black_border = Border(left=black_side, right=black_side, top=black_side, bottom=black_side)
 
                 # Apply to all cells
-                for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                for row in ws.iter_rows(min_row=0, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
                     for cell in row:
                         cell.fill = white_fill     # white background
                         cell.font = base_font      # Times New Roman 12pt
@@ -447,7 +447,6 @@ if st.button("Parse & Generate"):
                     if ws.cell(row=r, column=2).value == "Client":
                         for c in range(1, ws.max_column + 1):
                             ws.cell(row=r, column=c).font = blue_font
-                            blue_font = Font(color="0000FF")
 
             output.seek(0)
 

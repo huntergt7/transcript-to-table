@@ -462,15 +462,6 @@ if st.button("Parse & Generate"):
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
-            # Right after you build df
-            tsv_bytes = df.to_csv(index=False, sep="\t", header=False).encode("utf-8")
-            st.download_button(
-                label="⬇️ Download TSV (best for copying to MacOS Pages)",
-                data=tsv_bytes,
-                file_name=suggested_name.replace(".xlsx", ".tsv"),
-                mime="text/tab-separated-values",
-            )
-
             # # Also offer a clean CSV export
             # st.download_button(
             #     label="⬇️ Download CSV",

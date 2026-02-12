@@ -380,8 +380,8 @@ with st.sidebar:
 
     # Default shift set to 1.0s (your preference)
     shift_seconds = st.number_input(
-        "Seconds to subtract", min_value=0, value=0, step=1,
-        help="Subtract before formatting timestamps to MM:SS"
+        "Seconds to subtract (optional)", min_value=0, value=0, step=1,
+        help="This is only necessary if you trimmed your video and need to modify the timestamps to match."
     )
 
     # Debug checkbox defaults from DEBUG_ON
@@ -460,6 +460,15 @@ if st.button("Parse & Generate"):
                 data=output.getvalue(),
                 file_name=suggested_name,
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
+            # Right after you build df
+            tsv_bytes = df.to_csv(index=False, sep="\t", header=False).encode("utf-8")
+            st.download_button(
+                label="⬇️ Download TSV (best for copying to MacOS Pages)",
+                data=tsv_bytes,
+                file_name=suggested_name.replace(".xlsx", ".tsv"),
+                mime="text/tab-separated-values",
             )
 
             # # Also offer a clean CSV export

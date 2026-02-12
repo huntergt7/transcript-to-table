@@ -431,8 +431,10 @@ if st.button("Parse & Generate"):
                 # Define styles
                 white_fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
                 base_font  = Font(name="Times New Roman", size=12)
-                blue_font  = Font(name="Times New Roman", size=12, color="0000FF")  # for Client rows
-                
+                blue_font  = Font(name="Times New Roman", size=12, color="0000FF")  # for Client rows    
+                black_side = Side(style="thin", color="000000")
+                black_border = Border(left=black_side, right=black_side, top=black_side, bottom=black_side)
+
                 # Apply to all cells
                 for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
                     for cell in row:

@@ -371,9 +371,9 @@ st.subheader("Instructions: ")
 st.caption("1. Add Couns/Client names and upload file.")
 st.caption("2. After file is generated, open in MacOS Numbers v14.5 or lower, or in Microsoft Excel.")
 st.caption("3. Copy and paste the table into your verbatim form. Before clicking anywhere else, you might need to change the formatting:")
-st.caption("_   - To fill the cells with white on Pages: Format>Cell>Fill [select white color] _")
-st.caption("_   - To draw the grid black on Pages: Format>Cell>Border>All borders [select black color] _")
-st.caption("_   - To modify the font on Pages: Format>Text>Font [select Times New Roman, size 12] _")
+st.caption("   - _To fill the cells with white on Pages: Format>Cell>Fill [select white color] _")
+st.caption("   - _To draw the grid black on Pages: Format>Cell>Border>All borders [select black color] _")
+st.caption("   - _To modify the font on Pages: Format>Text>Font [select Times New Roman, size 12] _")
 
 with st.sidebar:
     st.header("Settings")

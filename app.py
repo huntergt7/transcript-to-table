@@ -365,10 +365,12 @@ def parse_dialogue_text(
 # =========================
 
 st.set_page_config(page_title="Transcript → Counseling Table", page_icon="📝")
-st.title("📝 Video Recording Transcript Converter for COUN 633")
-st.caption("Disclaimer: Use at your own risk. By interacting with this tool, you agree to the Terms of Service of Streamlit.io")
-st.caption("This tool was developed with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T.")
-st.caption("_Last updated February 11, 2026._")
+st.header("📝 Video Recording Transcript Converter for COUN 633")
+st.caption("Disclaimer: Use at your own risk. By interacting with this tool, you agree to the Terms of Service of Streamlit.io. This tool was developed with the help of Microsoft Copilot. For troubleshooting, please contact Hunter T. _Last updated February 11, 2026._")
+st.subheader("Instructions: ")
+st.caption("\t1. Add Couns/Client names and upload file.")
+st.caption("\t2. After file is generated, open in MacOS Numbers v14.5 or lower, or in Microsoft Excel.")
+st.caption("\t3. Copy and paste the table into your verbatim form. Before clicking anywhere else, fill the cells with white. (On Pages: Format>Cell>Fill [select white] )")
 
 with st.sidebar:
     st.header("Settings")

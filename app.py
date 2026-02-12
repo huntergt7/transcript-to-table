@@ -5,7 +5,7 @@ from typing import List, Dict, Optional, Tuple
 
 import pandas as pd
 import streamlit as st
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Border, Side
 
 # =========================
 # Toggleable debug flag
@@ -425,7 +425,7 @@ if st.button("Parse & Generate"):
             # Write to XLSX (in-memory) with blue font for Client rows
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                df.to_excel(writer, index=False, sheet_name="Dialogue")
+                df.to_excel(writer, index=False, header=False, sheet_name="Dialogue")
                 ws = writer.sheets["Dialogue"]
                 
                 # Define styles
@@ -438,6 +438,7 @@ if st.button("Parse & Generate"):
                     for cell in row:
                         cell.fill = white_fill     # white background
                         cell.font = base_font      # Times New Roman 12pt
+                        cell.border = black_border
                 
                 # Then re-apply blue font to Client rows (column 2 = Speaker)
                 for r in range(2, ws.max_row + 1):

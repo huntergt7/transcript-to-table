@@ -175,6 +175,11 @@ def parse_dialogue_text(
         if line.upper().startswith("WEBVTT"):
             log(f"[L{idx}] Skip WEBVTT header")
             continue
+        
+        if re.fullmatch(r"\d{1,6}", line):
+            log(f"[L{idx}] Skip numeric section index '{line}'")
+            continue
+
 
         # --- A) WEBVTT cue lines (e.g., "00:52:14.000 --> 00:52:16.000") ---
         if CUE_ARROW_RE.search(line):
@@ -401,7 +406,7 @@ uploaded_text = None
 uploaded_file = None
 
 if input_method == "Upload .txt":
-    uploaded_file = st.file_uploader("Upload transcript (.txt)", type=["txt"])
+    uploaded_file = st.file_uploader("Upload transcript (.txt or .vtt)", type=["txt", "vtt"])
     if uploaded_file is not None:
         uploaded_text = uploaded_file.read().decode("utf-8", errors="ignore")
 else:

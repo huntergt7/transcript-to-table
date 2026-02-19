@@ -10,7 +10,7 @@ from openpyxl.styles import Font, PatternFill, Border, Side
 # =========================
 # Toggleable debug flag
 # =========================
-DEBUG_ON = False  # Set True to default-enable parser trace and internal logging
+DEBUG_ON = True  # Set True to default-enable parser trace and internal logging
 
 
 # =========================
@@ -85,10 +85,15 @@ def _safe_replace_whole_name(text: str, name: str, replacement: str) -> str:
         return f"{prefix}{replacement}"
     return pat.sub(_sub, text)
 
-# Speaker patterns (emoji/punctuation-capable)
-_SPEAKER_BRACKET_RE    = re.compile(r"^\s*\[(?P<name>[^\]]+)\]\s*(?P<rest>.*)$")
-_SPEAKER_PAREN_ANY_RE  = re.compile(r"^\s*(?P<name>.+?)\s*\((?P<ts>[^)]*?)\)\s*(?P<rest>.*)$")
-_SPEAKER_DELIM_ANY_RE  = re.compile(r"^\s*(?P<name>.+?)\s*[:：\-–—]\s+(?P<rest>.*)$")
+# Allowed speaker name: letters (Latin with accents) + spaces & punctuation (no digits)
+# Includes: A–Z, a–z, Latin-1 accented, Latin Extended-A/B, Latin Extended Additional + common punctuation.
+_NAME_LETTERS_PUNCT = r"[A-Za-zÀ-ÖØ-öø-ÿ\u00C0-\u024F\u1E00-\u1EFF .,'’\"“”‘’\\-–—/&]+"
+
+# AFTER (restrict name to letters + punctuation only)
+_SPEAKER_BRACKET_RE   = re.compile(rf"^\s*\[(?P<name>{_NAME_LETTERS_PUNCT})\]\s*(?P<rest>.*)$")
+_SPEAKER_PAREN_ANY_RE = re.compile(rf"^\s*(?P<name>{_NAME_LETTERS_PUNCT})\s*\((?P<ts>[^)]*?)\)\s*(?P<rest>.*)$")
+_SPEAKER_DELIM_ANY_RE = re.compile(rf"^\s*(?P<name>{_NAME_LETTERS_PUNCT})\s*[:：\-–—]\s+(?P<rest>.*)$")
+
 
 def _build_bare_token_patterns(counselor_name: str, client_name: str):
     pats = []
